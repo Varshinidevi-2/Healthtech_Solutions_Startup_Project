@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BearGuard | Coonoor Market Safety</title>
+    <meta name="description" content="Real-time bear detection and safety alerts for Coonoor Market.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Login Page -->
+    <div class="login-container" id="login-screen">
+        <div class="login-card glass">
+            <div class="login-header">
+                <i class="fa-solid fa-shield-bear brand-icon"></i>
+                <h2>BearGuard</h2>
+                <p id="auth-title">Secure Surveillance Login</p>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form">
+                <div class="input-group">
+                    <i class="fa-solid fa-user"></i>
+                    <input type="text" id="username" placeholder="Email" required autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="btn btn-primary login-btn">
+                    Access System <i class="fa-solid fa-arrow-right"></i>
+                </button>
+                <p class="auth-switch">New User? <a href="#" onclick="toggleAuth('signup')">Sign Up</a></p>
+            </form>
+
+            <!-- Signup Form (Hidden) -->
+            <form id="signup-form" style="display: none;">
+                <div class="input-group">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <input type="text" id="new-username" placeholder="Username" required>
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-envelope"></i>
+                    <input type="email" id="new-email" placeholder="Email" required>
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="new-password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="btn btn-primary login-btn">
+                    Sign Up <i class="fa-solid fa-user-check"></i>
+                </button>
+                <p class="auth-switch">Authorized? <a href="#" onclick="toggleAuth('login')">Login Here</a></p>
+            </form>
+
+            <p id="login-error" class="error-msg"></p>
+        </div>
+    </div>
+
+    <!-- Main Application Wrapper (Hidden Initially) -->
+    <div class="app-container" id="main-app" style="display: none;">
+
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="brand">
+                <i class="fa-solid fa-shield-bear"></i>
+                <div>
+                    <span>BearGuard</span>
+                    <small style="display:block; font-size:0.7rem; color:var(--primary);">NIGHT WATCH</small>
+                </div>
+            </div>
+
+            <ul class="nav-links">
+                <li class="active" data-tab="home">
+                    <i class="fa-solid fa-moon"></i>
+                    <span>Guardian View</span>
+                </li>
+                <li data-tab="map">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                    <span>Live Map</span>
+                </li>
+                <li data-tab="dashboard">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Analytics</span>
+                </li>
+                <li data-tab="incidents">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>Incident History</span>
+                </li>
+                <li data-tab="awareness">
+                    <i class="fa-solid fa-book-open-reader"></i>
+                    <span>Awareness</span>
+                </li>
+                <li data-tab="team">
+                    <i class="fa-solid fa-code"></i>
+                    <span>The Team</span>
+                </li>
+                <li data-tab="contact">
+                    <i class="fa-solid fa-phone-volume"></i>
+                    <span>Emergency & Help</span>
+                </li>
+            </ul>
+
+            <div class="user-profile">
+                <div class="profile-clickable" onclick="showProfileModal()"
+                    style="display:flex; align-items:center; gap:0.8rem; cursor:pointer; flex:1;">
+                    <div class="avatar">
+                        <i class="fa-solid fa-user-astronaut"></i>
+                    </div>
+                    <div class="user-info">
+                        <span>Chief Warden</span>
+                        <small>Night Watch Lead</small>
+                    </div>
+                </div>
+                <button onclick="logout()" class="icon-btn"
+                    style="margin-left: auto; width: 32px; height: 32px; border:none;" title="Logout">
+                    <i class="fa-solid fa-right-from-bracket" style="color: var(--danger);"></i>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="content-area">
+
+            <!-- Header -->
+            <header class="top-header">
+                <div class="header-title">
+                    <h1 id="page-title">Command Center</h1>
+                    <p id="current-date">October 26, 2023</p>
+                </div>
+                <div class="header-actions">
+                    <div class="night-guardian-status" id="ng-status"
+                        style="display:flex; align-items:center; gap:0.5rem; margin-right:1rem; color:var(--primary); font-weight:600;">
+                        <i class="fa-solid fa-eye"></i> <span class="typing-text">Watching...</span>
+                    </div>
+                    <button class="icon-btn" id="notif-btn">
+                        <i class="fa-solid fa-bell"></i>
+                        <span class="badge">3</span>
+                    </button>
+                    <button class="btn btn-danger" id="sim-alert-btn">
+                        <i class="fa-solid fa-eye"></i> Spot Wildlife
+                    </button>
+                </div>
+            </header>
+
+            <!-- Notification Panel (Overlay) -->
+            <div class="notification-panel" id="notification-panel">
+                <h3>Night Log</h3>
+                <ul class="notif-list" id="notif-list">
+                    <!-- Populated by JS -->
+                </ul>
+            </div>
+
+            <!-- Page Implementation: Home -->
+            <section id="home" class="page active">
+                <div class="hero-banner">
+                    <div class="hero-content">
+                        <h2>Guardians of the Night</h2>
+                        <p>Protecting livelihoods. Preserving Wildlife. <br>Ensuring a safe distance between the market
+                            and the forest.</p>
+                        <div class="badges" style="margin-top: 1rem; display:flex; gap:0.5rem;">
+                            <span class="badge-pill"
+                                style="background:rgba(16, 185, 129, 0.2); color:#10b981; padding:0.25rem 0.75rem; border-radius:50px; font-size:0.8rem;"><i
+                                    class="fa-solid fa-paw"></i> Wildlife Friendly</span>
+                            <span class="badge-pill"
+                                style="background:rgba(59, 130, 246, 0.2); color:#3b82f6; padding:0.25rem 0.75rem; border-radius:50px; font-size:0.8rem;"><i
+                                    class="fa-solid fa-brain"></i> Ethical AI</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="status-container">
+                    <div class="api-status-card glass">
+                        <h3>Coexistence Status</h3>
+                        <div class="status-indicator safe" id="main-status">
+                            <div class="pulse-ring"></div>
+                            <span class="status-icon"><i class="fa-solid fa-shield-heart"></i></span>
+                            <span class="status-text">Harmony Active</span>
+                        </div>
+                        <p class="status-sub">Zero conflicts detected. Shops are secure.</p>
+                        <div class="deterrence-state"
+                            style="margin-top:1rem; font-size:0.9rem; color:var(--text-muted);">
+                            <span class="dot-indicator on"
+                                style="display:inline-block; width:8px; height:8px; background:var(--success); border-radius:50%; margin-right:5px;"></span>
+                            Ultrasonic Fence Active
+                        </div>
+                    </div>
+
+                    <div class="stats-mini glass">
+                        <div class="stat-item">
+                            <i class="fa-solid fa-star-of-life"></i>
+                            <div>
+                                <h4>32</h4>
+                                <span>Conflicts Prevented</span>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fa-solid fa-tree"></i>
+                            <div>
+                                <h4>100%</h4>
+                                <span>Wildlife Safe</span>
+                            </div>
+                        </div>
+                        <div class="system-health"
+                            style="border-top:1px solid rgba(255,255,255,0.1); padding-top:1rem; margin-top:0.5rem;">
+                            <h4 style="font-size:0.9rem; color:var(--text-muted); margin-bottom:0.5rem;">SYSTEM HEALTH
+                            </h4>
+                            <p style="font-size:0.9rem; margin-bottom:0.25rem;"><i class="fa-solid fa-server"
+                                    style="color:var(--success);"></i> AI Core: <span
+                                    style="font-family:monospace; color:var(--success);">ONLINE</span></p>
+                            <p style="font-size:0.9rem;"><i class="fa-solid fa-wifi" style="color:var(--primary);"></i>
+                                Latency: <span style="font-family:monospace;">12ms</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="advisory-panel glass" style="margin-top: 2rem; border-left: 4px solid var(--warning);">
+                    <h3><i class="fa-solid fa-bullhorn" style="color:var(--warning);"></i> Preventive Advisory</h3>
+                    <p style="margin-top:0.5rem; color:#e2e8f0;">Tonight's Risk Level: <strong>MODERATE</strong>. Ensure
+                        all biological waste is disposed of in secure bins before 8 PM.</p>
+                </div>
+            </section>
+
+            <!-- Page Implementation: Map -->
+            <section id="map" class="page">
+                <div class="map-wrapper glass">
+                    <div id="leaflet-map"></div>
+                    <div class="map-overlay">
+                        <div class="legend-item">
+                            <span class="dot safe"></span> Safe Zone
+                        </div>
+                        <div class="legend-item">
+                            <span class="dot danger"></span> Bear Detected
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page Implementation: Dashboard -->
+            <section id="dashboard" class="page">
+                <div class="dashboard-grid">
+                    <div class="card glass">
+                        <h3>Total Alerts Today</h3>
+                        <div class="big-number" id="alert-count">0</div>
+                    </div>
+                    <div class="card glass">
+                        <h3>High Risk Zone</h3>
+                        <div class="highlight-text">Lower Bazaar</div>
+                    </div>
+                    <div class="card glass span-2">
+                        <div
+                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                            <h3>Activity Heatmap & Trends</h3>
+                            <button class="btn btn-outline" style="padding:0.25rem 0.75rem; font-size:0.8rem;"
+                                onclick="exportReport()">
+                                <i class="fa-solid fa-file-export"></i> Export Report
+                            </button>
+                        </div>
+                        <canvas id="activityChart"></canvas>
+                    </div>
+                    <div class="card glass span-2">
+                        <h3>Time-Based Analysis (Peak Hours)</h3>
+                        <canvas id="timeChart" style="max-height: 250px;"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page Implementation: Incident History -->
+            <section id="incidents" class="page">
+                <div class="card glass">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                        <h3>Incident History Log</h3>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Location</th>
+                                <th>Confidence</th>
+                                <th>Action Taken</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="incident-log-body">
+                            <tr>
+                                <td>02:15 AM</td>
+                                <td>Market Entrance</td>
+                                <td>94%</td>
+                                <td>Auto-Deterrence (Sonic)</td>
+                                <td>Resolved</td>
+                            </tr>
+                            <tr>
+                                <td>03:40 AM</td>
+                                <td>Vegetable Lane</td>
+                                <td>89%</td>
+                                <td>Ranger Alerted</td>
+                                <td><span class="tag high">High Priority</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Page Implementation: Awareness -->
+            <section id="awareness" class="page">
+                <div class="card glass" style="margin-bottom: 2rem;">
+                    <h2>Why Bears Enter Markets</h2>
+                    <p style="color:var(--text-muted); margin-top:0.5rem;">Understanding cause and effect is key to
+                        coexistence.</p>
+                    <ul style="margin-top: 1rem; padding-left: 1.5rem; line-height: 1.6;">
+                        <li><strong>Attractants:</strong> Open garbage and food waste release strong scents that travel
+                            miles.</li>
+                        <li><strong>Habitat Fragmentation:</strong> Traditional corridors are blocked by new
+                            construction.</li>
+                        <li><strong>Easy Calories:</strong> High-calorie human food is easier to obtain than foraging.
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card glass">
+                    <h2>How You Can Help</h2>
+                    <div
+                        style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-top:1rem;">
+                        <div
+                            style="text-align:center; padding:1rem; border:1px solid rgba(255,255,255,0.05); border-radius:12px;">
+                            <i class="fa-solid fa-trash-can"
+                                style="color:var(--primary); font-size: 2rem; margin-bottom:0.5rem;"></i>
+                            <h4>Secure Waste</h4>
+                            <p style="font-size:0.9rem; color:var(--text-muted);">Lock dumpsters at night.</p>
+                        </div>
+                        <div
+                            style="text-align:center; padding:1rem; border:1px solid rgba(255,255,255,0.05); border-radius:12px;">
+                            <i class="fa-solid fa-lightbulb"
+                                style="color:var(--warning); font-size: 2rem; margin-bottom:0.5rem;"></i>
+                            <h4>Lighting</h4>
+                            <p style="font-size:0.9rem; color:var(--text-muted);">Use motion-sensor lights.</p>
+                        </div>
+                        <div
+                            style="text-align:center; padding:1rem; border:1px solid rgba(255,255,255,0.05); border-radius:12px;">
+                            <i class="fa-solid fa-handshake-angle"
+                                style="color:var(--success); font-size: 2rem; margin-bottom:0.5rem;"></i>
+                            <h4>Report</h4>
+                            <p style="font-size:0.9rem; color:var(--text-muted);">Call the hotline immediately.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page Implementation: The Team -->
+            <section id="team" class="page">
+                <div class="card glass" style="margin-bottom: 2rem;">
+                    <h2>Who Made This?</h2>
+                    <p style="margin-top: 1rem; font-size: 1.1rem; line-height: 1.6;">
+                        Hi. We are a group of students.
+                        <br><br>
+                        We saw a big problem: Bears were coming into town at night. People were scared.
+                        <br>
+                        We wanted to help. So we wrote this code.
+                    </p>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card glass">
+                        <h3>How It Works (Simple)</h3>
+                        <ul style="margin-top: 1rem; line-height: 2; list-style: none;">
+                            <li><i class="fa-solid fa-video" style="color:var(--primary)"></i> <strong>1.
+                                    Watch:</strong> A camera stares at the street.</li>
+                            <li><i class="fa-solid fa-brain" style="color:var(--warning)"></i> <strong>2.
+                                    Think:</strong> The computer looks for bear shapes.</li>
+                            <li><i class="fa-solid fa-bell" style="color:var(--danger)"></i> <strong>3. Warn:</strong>
+                                If it sees one, it rings the alarm.</li>
+                        </ul>
+                    </div>
+
+                    <div class="card glass">
+                        <h3>Our Main Goal</h3>
+                        <p style="margin-top: 1rem; line-height: 1.6;">
+                            We don't want to hurt the bears.
+                            <br>
+                            We just want them to go back to the forest.
+                            <br>
+                            And we want the shopkeepers to sleep safely.
+                        </p>
+                    </div>
+
+                    <div class="card glass span-2">
+                        <h3>The Builders</h3>
+                        <div
+                            style="display: flex; gap: 3rem; margin-top: 1.5rem; flex-wrap: wrap; justify-content: center;">
+                            <!-- Developer 1 -->
+                            <div style="text-align: center;">
+                                <div
+                                    style="width: 80px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--primary);">
+                                    <i class="fa-solid fa-laptop-code" style="color: white; font-size: 1.5rem;"></i>
+                                </div>
+                                <strong style="font-size: 1.1rem;">Tech Lead</strong>
+                                <p style="font-size: 0.9rem; color: var(--text-muted);">Wrote the logic</p>
+                            </div>
+                            <!-- Developer 2-->
+                            <div style="text-align: center;">
+                                <div
+                                    style="width: 80px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--success);">
+                                    <i class="fa-solid fa-pencil" style="color: white; font-size: 1.5rem;"></i>
+                                </div>
+                                <strong style="font-size: 1.1rem;">Designer</strong>
+                                <p style="font-size: 0.9rem; color: var(--text-muted);">Made it pretty</p>
+                            </div>
+                            <!-- Developer 3-->
+                            <div style="text-align: center;">
+                                <div
+                                    style="width: 80px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--warning);">
+                                    <i class="fa-solid fa-bullhorn" style="color: white; font-size: 1.5rem;"></i>
+                                </div>
+                                <strong style="font-size: 1.1rem;">Researcher</strong>
+                                <p style="font-size: 0.9rem; color: var(--text-muted);">Studied the bears</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page Implementation: Contact -->
+            <section id="contact" class="page">
+                <div class="card glass" style="border-left: 4px solid var(--danger); margin-bottom: 2rem;">
+                    <h2 style="color: var(--danger); display:flex; align-items:center; gap:0.5rem;"><i
+                            class="fa-solid fa-tower-broadcast"></i> Emergency Hotlines</h2>
+                    <p style="margin-bottom: 1.5rem; margin-top:0.5rem; color:var(--text-muted);">For immediate wildlife
+                        threats to human life, call these numbers 24/7.</p>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                        <a href="tel:108" style="text-decoration: none;">
+                            <div class="emergency-card"
+                                style="background: rgba(239, 68, 68, 0.2); padding: 1.5rem; border-radius: 12px; text-align: center; border: 1px solid var(--danger); transition: 0.3s; cursor: pointer;">
+                                <i class="fa-solid fa-truck-medical"
+                                    style="font-size: 2rem; color: white; margin-bottom: 0.5rem;"></i>
+                                <h3 style="color: white; font-size:1.2rem;">Medical / Fire</h3>
+                                <div style="font-size: 1.8rem; font-weight: 800; color: white;">108</div>
+                            </div>
+                        </a>
+
+                        <a href="tel:9876543210" style="text-decoration: none;">
+                            <div class="emergency-card"
+                                style="background: rgba(16, 185, 129, 0.2); padding: 1.5rem; border-radius: 12px; text-align: center; border: 1px solid var(--success); transition: 0.3s; cursor: pointer;">
+                                <i class="fa-solid fa-tree"
+                                    style="font-size: 2rem; color: white; margin-bottom: 0.5rem;"></i>
+                                <h3 style="color: white; font-size:1.2rem;">Forest Dept</h3>
+                                <div style="font-size: 1.8rem; font-weight: 800; color: white;">+91 98765</div>
+                            </div>
+                        </a>
+
+                        <a href="tel:100" style="text-decoration: none;">
+                            <div class="emergency-card"
+                                style="background: rgba(59, 130, 246, 0.2); padding: 1.5rem; border-radius: 12px; text-align: center; border: 1px solid var(--primary); transition: 0.3s; cursor: pointer;">
+                                <i class="fa-solid fa-shield-halved"
+                                    style="font-size: 2rem; color: white; margin-bottom: 0.5rem;"></i>
+                                <h3 style="color: white; font-size:1.2rem;">Police Control</h3>
+                                <div style="font-size: 1.8rem; font-weight: 800; color: white;">100</div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card glass">
+                        <h3><i class="fa-solid fa-envelope"></i> Contact Dev Team</h3>
+                        <p style="color: var(--text-muted); margin-bottom: 1rem; margin-top:0.5rem;">Found a bug? Have a
+                            suggestion?</p>
+                        <form style="display: flex; flex-direction: column; gap: 1rem;"
+                            onsubmit="event.preventDefault(); alert('Message sent to team!');">
+                            <input type="text" placeholder="Your Name"
+                                style="padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(15, 23, 42, 0.6); color: white;">
+                            <textarea placeholder="Message" rows="4"
+                                style="padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(15, 23, 42, 0.6); color: white;"></textarea>
+                            <button class="btn btn-primary">Send Message</button>
+                        </form>
+                    </div>
+
+                    <div class="card glass">
+                        <h3><i class="fa-solid fa-location-dot"></i> Command Center</h3>
+                        <div style="margin-top: 1rem;">
+                            <p style="font-size:1.1rem;"><strong>BearGuard HQ</strong></p>
+                            <p style="color: var(--text-muted); margin-top:0.5rem; line-height:1.6;">Sim's Park Road,
+                                Coonoor<br>Nilgiris, Tamil Nadu<br>PIN: 643101</p>
+                            <div
+                                style="margin-top: 1.5rem; height: 150px; background: rgba(255,255,255,0.05); border-radius: 12px; display: flex; align-items: center; justify-content: center; border:1px dashed rgba(255,255,255,0.2);">
+                                <span style="font-size: 0.9rem; color: var(--text-muted);"><i
+                                        class="fa-solid fa-map-pin"></i> [Map]</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Alert Modal Overlay -->
+    <dialog id="alert-modal" class="alert-modal">
+        <div class="alert-content glass-high-tech">
+            <div class="alert-header">
+                <div class="sys-warning">
+                    <i class="fa-solid fa-triangle-exclamation blink"></i>
+                    <span>CRITICAL ALERT</span>
+                </div>
+                <h2 class="glitch-text" data-text="BEAR DETECTED">BEAR DETECTED</h2>
+            </div>
+
+            <div class="alert-body">
+                <div class="alert-meta">
+                    <p>LOCATION: <span id="alert-loc-text" class="mono-font">Upper Market Road</span></p>
+                    <p>CONFIDENCE: <span class="highlight-text mono-font">98.4%</span></p>
+                    <div
+                        style="font-size:0.8rem; border-top:1px solid rgba(255,255,255,0.1); margin-top:0.5rem; padding-top:0.5rem; text-align:left;">
+                        <span style="color:var(--text-muted);">AI ANALYSIS:</span> <br>
+                        Object identified as <em>Ursus ursinus</em> based on gait analysis and thermal signature (YOLOv8
+                        Model).
+                    </div>
+                </div>
+
+                <div class="camera-feed-container">
+                    <div class="camera-feed">
+                        <img src="bear_alert.png" alt="Bear Detection Feed" class="feed-img">
+                        <div class="rec-dot">REC ●</div>
+
+                        <!-- AI HUD Overlay -->
+                        <div class="hud-overlay" id="ai-hud">
+                            <div class="scan-line"></div>
+                            <div class="target-box">
+                                <span class="corner tl"></span>
+                                <span class="corner tr"></span>
+                                <span class="corner bl"></span>
+                                <span class="corner br"></span>
+                                <span class="target-label">Bear</span>
+                            </div>
+                            <div class="hud-stats">
+                                <div>ISO: 3200</div>
+                                <div>SHUTTER: 1/60</div>
+                                <div>AI MODEL: V4.2</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Response Panel -->
+                <div class="deterrence-panel">
+                    <h3><i class="fa-solid fa-bolt"></i> ACTIVE DETERRENCE CONTROLS</h3>
+                    <div class="control-grid">
+                        <button class="ctrl-btn" onclick="activateDeterrence(this, 'sonic')">
+                            <i class="fa-solid fa-volume-high"></i>
+                            <span>Sonic Blast</span>
+                        </button>
+                        <button class="ctrl-btn" onclick="activateDeterrence(this, 'strobe')">
+                            <i class="fa-solid fa-lightbulb"></i>
+                            <span>Strobe Flash</span>
+                        </button>
+                        <button class="ctrl-btn" onclick="activateDeterrence(this, 'drone')">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>Deploy Drone</span>
+                        </button>
+                    </div>
+                    <div id="action-status" class="action-status">waiting for manual input...</div>
+                </div>
+            </div>
+
+            <div class="alert-footer">
+                <button class="btn btn-outline" onclick="closeAlert()">Stand Down</button>
+                <button class="btn btn-danger" onclick="notifyAuthorities()">
+                    <i class="fa-solid fa-tower-broadcast"></i> Notify Rangers
+                </button>
+            </div>
+        </div>
+    </dialog>
+
+    <audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto"></audio>
+
+    <!-- Profile Modal (New) -->
+    <dialog id="profile-modal" class="alert-modal" style="border: 1px solid var(--primary);">
+        <div class="alert-content glass" style="max-width: 400px; padding: 2rem;">
+            <div class="alert-header"
+                style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem; margin-bottom: 1rem; display:flex; justify-content:space-between; align-items:center;">
+                <h2 style="color: var(--primary); font-size:1.5rem; margin:0;"><i class="fa-solid fa-id-card"></i>
+                    Officer Details</h2>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div
+                    style="width: 100px; height: 100px; background: rgba(59, 130, 246, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; border: 2px solid var(--primary);">
+                    <i class="fa-solid fa-user-shield" style="font-size: 3rem; color: white;"></i>
+                </div>
+                <h3>Ranger Vikram Singh</h3>
+                <p style="color: var(--text-muted);">Senior Forest Officer</p>
+                <span class="badge-pill"
+                    style="background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 0.25rem 0.75rem; border-radius: 50px; font-size: 0.8rem; margin-top: 0.5rem; display: inline-block;">Active
+                    Duty</span>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="color: var(--text-muted);">ID Number:</span>
+                    <span class="mono-font">4321784932</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="color: var(--text-muted);">Zone:</span>
+                    <span>Coonoor Range (Zone B)</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="color: var(--text-muted);">Shift:</span>
+                    <span>22:00 - 06:00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted);">Contact:</span>
+                    <span>+91 98765 43210</span>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%;" onclick="closeProfileModal()">Close</button>
+        </div>
+    </dialog>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
